@@ -1,0 +1,237 @@
+// Comprehensive lexer test file
+// This file tests all token types in your lexer
+
+// ===== LITERALS =====
+var num1 = 42;
+var num2 = 3.14159;
+var num3 = 0.001;
+var or = "Hello World";
+var orange;
+var name4 = "Amit \t Kumar \n
+hellow amit 
+aldjf \t salkdjfa";
+var identifier123 = true;
+var $specialVar = nil;
+
+// ===== SINGLE CHARACTER TOKENS =====
+func testParens() {
+    return (1 + 2);
+}
+
+var array = [1, 2, 3];
+var obj = {
+    key: "value",
+    count: 10
+};
+
+var result = condition ? "yes" : "no";
+var remainder = 15 % 4;
+var template = $"Hello {name}";
+var xorResult = a ^ b;
+var complement = ~flags;
+
+// ===== TWO CHARACTER TOKENS =====
+// Comparison operators
+if (x != y && a == b) {
+    print("Not equal and equal");
+}
+
+if (value >= 10 || count <= 0) {
+    print("Range check");
+}
+
+// Bit shifting
+var shifted = bits >> 2;
+var leftShift = value << 1;
+
+// Logical operators
+if (isValid && isReady) {
+    print("Both conditions true");
+}
+
+if (hasError || hasWarning) {
+    print("Has issues");
+}
+
+// Increment/Decrement
+counter++;
+--index;
+
+// Compound assignment
+total += amount;
+balance -= withdrawal;
+area *= scale;
+quotient /= divisor;
+
+// Power and integer division
+var power = base ** exponent;
+var intDiv = total // count;
+
+// ===== KEYWORDS AND CONTROL FLOW =====
+class Calculator {
+    func add(a, b) {
+        return a + b;
+    }
+    
+    func divide(a, b) {
+        if (b == 0) {
+            throw "Division by zero";
+        }
+        return a / b;
+    }
+}
+
+var calc = Calculator();
+
+// For loop
+for (var i = 0; i < 10; i++) {
+    if (i == 5) {
+        continue;
+    }
+    if (i == 8) {
+        break;
+    }
+    print(i);
+}
+
+// While loop
+var count = 0;
+while (count < 5) {
+    count++;
+}
+
+// Switch statement
+switch (day) {
+    case "Monday":
+        print("Start of week");
+        break;
+    case "Friday":
+        print("TGIF!");
+        break;
+    default:
+        print("Regular day");
+}
+
+// Try-catch-finally
+try {
+    var result = calc.divide(10, 0);
+} catch (error) {
+    print("Caught error: " + error);
+} finally {
+    print("Cleanup");
+}
+
+// Class with inheritance
+class Vehicle {
+    func start() {
+        print("Vehicle starting");
+    }
+}
+
+class Car : Vehicle {
+    func start() {
+        super.start();
+        print("Car engine started");
+    }
+    
+    func honk() {
+        print("Beep beep!");
+    }
+}
+
+// Const declaration
+const PI = 3.14159;
+const MAX_SIZE = 100;
+
+// Boolean values and nil
+var isActive = true;
+var isComplete = false;
+var nullValue = nil;
+
+// Complex expressions
+var complex = (a + b) * (c - d) / (e % f);
+var logical = (x > 0) && (y < 100) || (z == nil);
+var bitwise = (flags & MASK) | (options ^ DEFAULT);
+
+// Method chaining and property access
+var result = obj.property.method().chain.another();
+
+// Array access
+var element = matrix[i][j];
+var slice = array[start:end];
+
+// func with multiple parameters
+func complexFunction(param1, param2, param3) {
+    var local = param1 + param2;
+    
+    if (param3 != nil) {
+        local *= param3;
+    }
+    
+    return local;
+}
+
+// Anonymous func / lambda
+var lambda = func(x, y) {
+    return x * y + 1;
+};
+
+// Edge cases and mixed tokens
+var weird = "string" + 123 + true;
+var operators = !!value && ++counter <= --limit;
+var shifts = (x << 2) >> 1;
+var powers = base ** (exponent ** 2);
+
+// Comments and whitespace handling
+/* Multi-line comment
+   with various tokens inside:
+   var x = 42; // This should be ignored
+   func test() { return true; }
+*/
+
+// Line comment with tokens: if while for class
+
+
+// Numbers in different formats
+var hex = 0xFF;
+var binary = 0b1010;
+var scientific = 1.23e-4;
+
+// Nested structures
+var nested = {
+    array: [
+        {id: 1, active: true},
+        {id: 2, active: false}
+    ],
+    config: {
+        timeout: 5000,
+        retries: 3
+    }
+};
+
+// Complex control flow
+for (var item : collection) {
+    try {
+        if (item.isValid()) {
+            switch (item.type) {
+                case "premium":
+                    item.process();
+                    break;
+                case "standard":
+                    if (item.priority > 5) {
+                        item.expedite();
+                    }
+                    break;
+                default:
+                    continue;
+            }
+        }
+    } catch (error) {
+        print("Processing error for item: " + item.id);
+        throw error;
+    } finally {
+        item.cleanup();
+    }
+}
+
+// End of test file

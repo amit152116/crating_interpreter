@@ -11,7 +11,7 @@ namespace Krypton {
           _line(1),
           _column(0),
           _lineStart(0),
-          _logger(logger()) {
+          _logger(Logger::getLogger()) {
         tokenize();
     }
 
@@ -40,7 +40,6 @@ namespace Krypton {
         _line++;
         _column    = 0;
         _lineStart = _current - 1;
-        _logger.debug("Moved to next line: {} at column {}", _line, _column);
     }
 
     auto Lexer::matchNext(char expected) -> bool {
@@ -51,15 +50,17 @@ namespace Krypton {
         return true;
     }
 
-    void Lexer::addToken(Token token) {
+    void Lexer::addToken(Token::Token token) {
         _tokens.emplace_back(token);
     }
 
-    auto Lexer::makeToken(TokenType type, Literal literal) const -> Token {
+    auto Lexer::makeToken(Token::Type                  type,
+                          Token::LiteralValue::Literal literal) const
+        -> Token::Token {
         auto length = _current - _start;
         auto text   = _source.substr(_start, length);
 
-        auto token = Token{
+        auto token = Token::Token{
             type, text, literal, _start - _lineStart, _current - _lineStart,
             _line};
         _logger.info("Created: {}", token);
@@ -68,10 +69,10 @@ namespace Krypton {
 
     template <typename... Args>
     auto Lexer::errorToken(fmt::format_string<Args...> fmt,
-                           Args&&... args) const -> Token {
+                           Args&&... args) const -> Token::Token {
         auto message = fmt::format(fmt, std::forward<Args>(args)...);
         _logger.error(message);
-        return makeToken(TokenType::ERROR, message);
+        return makeToken(Token::Type::ERROR, message);
     }
 
     auto Lexer::peek() const -> char {
@@ -88,7 +89,7 @@ namespace Krypton {
         return _source.at(_current + 1);
     }
 
-    auto Lexer::getStringLiteral() -> Token {
+    auto Lexer::getStringLiteral() -> Token::Token {
         std::vector<uint> newLines;
         while (peek() != '"' && !isAtEnd()) {
             if (peek() == '\n') {
@@ -98,7 +99,7 @@ namespace Krypton {
             advance();
         }
         if (isAtEnd()) {
-            return errorToken("Unterminated string at {}:{}", _line, _column);
+            return errorToken("{} Error: Unterminated string", lineInfo());
         }
         // The closing ".
         advance();
@@ -110,10 +111,10 @@ namespace Krypton {
         for (auto it = newLines.rbegin(); it != newLines.rend(); ++it) {
             value.erase(*it, 1);
         }
-        return makeToken(TokenType::STRING, value);
+        return makeToken(Token::Type::STRING, value);
     }
 
-    auto Lexer::getNumberLiteral() -> Token {
+    auto Lexer::getNumberLiteral() -> Token::Token {
         while (isDigit(peek())) {
             advance();
         }
@@ -128,24 +129,21 @@ namespace Krypton {
         }
         double number =
             std::stod(std::string(_source.substr(_start, _current)));
-        return makeToken(TokenType::NUMBER, number);
+        return makeToken(Token::Type::NUMBER, number);
     }
 
-    auto Lexer::checkKeyword(const std::string& identifier) const -> TokenType {
-        auto keywords = getKeywordMap();
+    auto Lexer::checkKeyword(const std::string& identifier) -> Token::Type {
+        auto keywords = Token::getKeywordMap();
         auto it       = keywords.find(identifier);
 
         if (it != keywords.end()) {
-            _logger.debug("Identifier '{}' matched with keyword '{}'",
-                          identifier, it->second);
             return it->second;
         }
-        _logger.debug("Identifier '{}' is not a keyword", identifier);
 
-        return TokenType::IDENTIFIER;
+        return Token::Type::IDENTIFIER;
     }
 
-    auto Lexer::getIdentifier() -> Token {
+    auto Lexer::getIdentifier() -> Token::Token {
         while (isAlphaNumeric(peek())) {
             advance();
         }
@@ -157,31 +155,30 @@ namespace Krypton {
         return makeToken(type);
     }
 
-    auto Lexer::scanToken() -> Token {
+    auto Lexer::scanToken() -> Token::Token {
         // Skip any whitespace or comments before starting a token
         while (true) {
             _start = _current;
             if (isAtEnd()) {
-                return makeToken(TokenType::EOF_);
+                return makeToken(Token::Type::EOF_);
             }
 
             char ch = advance();
 
             // Skip whitespace
-            if (ch == ' ' || ch == '\r' || ch == '\t') {
-                continue;
-            }
-
             if (ch == '\n') {
                 nextLine();
+                continue;
+            }
+            if ((isspace(ch) != 0)) {
                 continue;
             }
 
             // Handle comments
             if (ch == '/') {
                 if (matchNext('/')) {
-                    _logger.debug("Single-line comment detected at line {}",
-                                  _line);
+                    _logger.debug("{} Single-line comment detected",
+                                  lineInfo());
                     while (!matchNext('\n')) {
                         advance();
                     }
@@ -189,14 +186,12 @@ namespace Krypton {
                     continue;
                 }
                 if (matchNext('*')) {
-                    _logger.debug("Multi-line comment detected at line {}",
-                                  _line);
+                    uint startLine = _line;
                     while (true) {
                         if (isAtEnd()) {
                             return errorToken(
-                                "Unterminated multi-line comment "
-                                "at {}:{}",
-                                _line, _column);
+                                "{} Error: Unterminated multi-line comment ",
+                                lineInfo());
                         }
                         if (peek() == '*' && peekNext() == '/') {
                             advance(2);  // Skip the closing */
@@ -207,6 +202,8 @@ namespace Krypton {
                         }
                         advance();
                     }
+                    _logger.debug("{} Multi-line comment detected",
+                                  lineInfo(startLine, _line));
                     continue;
                 }
             }
@@ -216,116 +213,116 @@ namespace Krypton {
         }
     }
 
-    auto Lexer::scanChar(char ch) -> Token {
+    auto Lexer::scanChar(char ch) -> Token::Token {
         switch (ch) {
             case '(':
-                return makeToken(TokenType::LEFT_PAREN);
+                return makeToken(Token::Type::LEFT_PAREN);
             case ')':
-                return makeToken(TokenType::RIGHT_PAREN);
+                return makeToken(Token::Type::RIGHT_PAREN);
             case '{':
-                return makeToken(TokenType::LEFT_BRACE);
+                return makeToken(Token::Type::LEFT_BRACE);
             case '}':
-                return makeToken(TokenType::RIGHT_BRACE);
+                return makeToken(Token::Type::RIGHT_BRACE);
             case '[':
-                return makeToken(TokenType::LEFT_BRACKET);
+                return makeToken(Token::Type::LEFT_BRACKET);
             case ']':
-                return makeToken(TokenType::RIGHT_BRACKET);
+                return makeToken(Token::Type::RIGHT_BRACKET);
             case ',':
-                return makeToken(TokenType::COMMA);
+                return makeToken(Token::Type::COMMA);
             case '.':
-                return makeToken(TokenType::DOT);
+                return makeToken(Token::Type::DOT);
             case ';':
-                return makeToken(TokenType::SEMICOLON);
+                return makeToken(Token::Type::SEMICOLON);
             case '?':
-                return makeToken(TokenType::QUESTION);
+                return makeToken(Token::Type::QUESTION);
             case ':':
-                return makeToken(TokenType::COLON);
+                return makeToken(Token::Type::COLON);
             case '%':
-                return makeToken(TokenType::PERCENT);
+                return makeToken(Token::Type::PERCENT);
             case '$':
-                return makeToken(TokenType::DOLLAR);
+                return makeToken(Token::Type::DOLLAR);
             case '^':
-                return makeToken(TokenType::CARET);
+                return makeToken(Token::Type::CARET);
             case '~':
-                return makeToken(TokenType::TILDE);
+                return makeToken(Token::Type::TILDE);
 
             case '!':
                 if (matchNext('=')) {
-                    return makeToken(TokenType::BANG_EQUAL);
+                    return makeToken(Token::Type::BANG_EQUAL);
                 }
-                return makeToken(TokenType::BANG);
+                return makeToken(Token::Type::BANG);
             case '=':
                 if (matchNext('=')) {
-                    return makeToken(TokenType::EQUAL_EQUAL);
+                    return makeToken(Token::Type::EQUAL_EQUAL);
                 }
-                return makeToken(TokenType::EQUAL);
+                return makeToken(Token::Type::EQUAL);
             case '>':
                 if (matchNext('=')) {
-                    return makeToken(TokenType::GREATER_EQUAL);
+                    return makeToken(Token::Type::GREATER_EQUAL);
                 }
                 if (matchNext('>')) {
-                    return makeToken(TokenType::GREATER_GREATER);
+                    return makeToken(Token::Type::GREATER_GREATER);
                 }
-                return makeToken(TokenType::GREATER);
+                return makeToken(Token::Type::GREATER);
             case '<':
                 if (matchNext('=')) {
-                    return makeToken(TokenType::LESS_EQUAL);
+                    return makeToken(Token::Type::LESS_EQUAL);
                 }
                 if (matchNext('<')) {
-                    return makeToken(TokenType::LESS_LESS);
+                    return makeToken(Token::Type::LESS_LESS);
                 }
-                return makeToken(TokenType::LESS);
+                return makeToken(Token::Type::LESS);
             case '&':
                 if (matchNext('&')) {
-                    return makeToken(TokenType::AMPERSAND_AMPERSAND);
+                    return makeToken(Token::Type::AMPERSAND_AMPERSAND);
                 }
-                return makeToken(TokenType::AMPERSAND);
+                return makeToken(Token::Type::AMPERSAND);
             case '|':
                 if (matchNext('|')) {
-                    return makeToken(TokenType::PIPE_PIPE);
+                    return makeToken(Token::Type::PIPE_PIPE);
                 }
-                return makeToken(TokenType::PIPE);
+                return makeToken(Token::Type::PIPE);
             case '+':
                 if (matchNext('+')) {
-                    return makeToken(TokenType::PLUS_PLUS);
+                    return makeToken(Token::Type::PLUS_PLUS);
                 }
                 if (matchNext('=')) {
-                    return makeToken(TokenType::PLUS_EQUAL);
+                    return makeToken(Token::Type::PLUS_EQUAL);
                 }
-                return makeToken(TokenType::PLUS);
+                return makeToken(Token::Type::PLUS);
             case '-':
                 if (matchNext('-')) {
-                    return makeToken(TokenType::MINUS_MINUS);
+                    return makeToken(Token::Type::MINUS_MINUS);
                 }
                 if (matchNext('=')) {
-                    return makeToken(TokenType::MINUS_EQUAL);
+                    return makeToken(Token::Type::MINUS_EQUAL);
                 }
-                return makeToken(TokenType::MINUS);
+                return makeToken(Token::Type::MINUS);
             case '*':
                 if (matchNext('*')) {
-                    return makeToken(TokenType::STAR_STAR);
+                    return makeToken(Token::Type::STAR_STAR);
                 }
                 if (matchNext('=')) {
-                    return makeToken(TokenType::STAR_EQUAL);
+                    return makeToken(Token::Type::STAR_EQUAL);
                 }
-                return makeToken(TokenType::STAR);
+                return makeToken(Token::Type::STAR);
             case '/':
                 if (matchNext('=')) {
-                    return makeToken(TokenType::SLASH_EQUAL);
+                    return makeToken(Token::Type::SLASH_EQUAL);
                 }
-                return makeToken(TokenType::SLASH);
+                return makeToken(Token::Type::SLASH);
             case '"':
                 return getStringLiteral();
             case '\0':
-                return makeToken(TokenType::EOF_);
+                return makeToken(Token::Type::EOF_);
             default:
                 if (isDigit(ch)) {
                     return getNumberLiteral();
                 } else if (isAlpha(ch)) {
                     return getIdentifier();
                 }
-                return errorToken("Unexpected character: '{}' at {}:{}", ch,
-                                  _line, _column);
+                return errorToken("{} Error: Unexpected character: '{}'",
+                                  lineInfo(), ch);
         }
     }
 

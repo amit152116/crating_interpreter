@@ -1,4 +1,4 @@
-.PHONY: all clean build run rebuild
+.PHONY: all clean build run rebuild test
 
 # Project configuration
 PROJECT_NAME = Krypton
@@ -15,7 +15,7 @@ cmake_init:
 # Build the project
 build: cmake_init
 	@echo "Building $(PROJECT_NAME)..."
-	@cd $(BUILD_DIR) && make
+	@cd $(BUILD_DIR) && make -j$(shell nproc)
 	@echo "Build complete!"
 
 # Clean build directory

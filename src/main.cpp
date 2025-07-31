@@ -35,15 +35,15 @@ namespace {
     auto runFile(std::string file) -> int {
         auto ext = file.substr(file.rfind('.'));
         if (ext != FILE_EXTENSION) {
-            Krypton::logger().error("Invalid file extension: `{}`", ext);
-            Krypton::logger().info(
+            Logger::getLogger().error("Invalid file extension: `{}`", ext);
+            Logger::getLogger().info(
                 "Only `{}` files are "
                 "supported",
                 FILE_EXTENSION);
             return 1;
         }
         if (not std::filesystem::exists(file)) {
-            Krypton::logger().error("File doesn't exists: {}", file);
+            Logger::getLogger().error("File doesn't exists: {}", file);
             return 1;
         }
         std::string source;
@@ -54,8 +54,8 @@ namespace {
                 src_stream << readFile.rdbuf();
                 source = src_stream.str();
             } else {
-                Krypton::logger().error("File found but failed to open: {}",
-                                        file);
+                Logger::getLogger().error("File found but failed to open: {}",
+                                          file);
             }
         }
         auto lexer = Krypton::Lexer(source);
@@ -64,10 +64,10 @@ namespace {
 }  // namespace
 
 auto main(int argc, char const* argv[]) -> int {
-    Krypton::logger().setLogFile("krypton.log");
-    Krypton::logger().setLevel(Krypton::LogLevel::DEBUG);
+    Logger::getLogger().setLogFile("krypton.log");
+    Logger::getLogger().setLevel(Logger::LogLevel::DEBUG);
     if (argc > 2) {
-        Krypton::logger().error("Usage: krypton <filename>");
+        Logger::getLogger().error("Usage: krypton <filename>");
         return 1;
     }
     if (argc == 2) {
@@ -75,6 +75,8 @@ auto main(int argc, char const* argv[]) -> int {
     } else {
         runPrompt();
     }
+
+    Logger::getLogger().info("Exiting Krypton interpreter...");
 
     return 0;
 }

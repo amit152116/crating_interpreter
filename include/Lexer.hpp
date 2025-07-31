@@ -13,22 +13,30 @@ namespace Krypton {
       public:
 
         explicit Lexer(std::string source);
-
         ~Lexer();
+
+        // Disable copy constructor and copy assignment
+        Lexer(const Lexer&)                    = delete;
+        auto operator=(const Lexer&) -> Lexer& = delete;
+
+        // Disable move constructor and move assignment
+        Lexer(Lexer&&)                    = delete;
+        auto operator=(Lexer&&) -> Lexer& = delete;
 
         void tokenize();
 
       private:
 
         // Helper methods for scanning
-        auto               scanToken() -> Token;
-        auto               scanChar(char ch) -> Token;
-        void               addToken(Token token);
-        [[nodiscard]] auto makeToken(TokenType type,
-                                     Literal literal = nullptr) const -> Token;
+        auto               scanToken() -> Token::Token;
+        auto               scanChar(char ch) -> Token::Token;
+        void               addToken(Token::Token token);
+        [[nodiscard]] auto makeToken(Token::Type                  type,
+                                     Token::LiteralValue::Literal literal =
+                                         nullptr) const -> Token::Token;
         template <typename... Args>
         auto errorToken(fmt::format_string<Args...> fmt, Args&&... args) const
-            -> Token;
+            -> Token::Token;
 
         // Scanning methods
         auto               advance(int steps = 1) -> char;
@@ -39,20 +47,11 @@ namespace Krypton {
         [[nodiscard]] auto isAtEnd() const -> bool;
 
         // Specific token scanners
-        auto               getStringLiteral() -> Token;
-        auto               getNumberLiteral() -> Token;
-        auto               getIdentifier() -> Token;
-        [[nodiscard]] auto checkKeyword(const std::string& identifier) const
-            -> TokenType;
-
-        // ispunct(c)	Returns true if c is a punctuation character (e.g.,
-        // !@#$%^&*)
-
-        // isspace(c)	Returns true if c is a whitespace character (' ', \t,
-        // \n, etc.)
-
-        // iscntrl(c)	Returns true if c is a control character (e.g., \n, \t,
-        // ASCII < 32)
+        auto                      getStringLiteral() -> Token::Token;
+        auto                      getNumberLiteral() -> Token::Token;
+        auto                      getIdentifier() -> Token::Token;
+        [[nodiscard]] static auto checkKeyword(const std::string& identifier)
+            -> Token::Type;
 
         // Utility methods
         static auto isDigit(char ch) -> bool {
@@ -67,14 +66,23 @@ namespace Krypton {
             return isDigit(ch) || isAlpha(ch);
         }
 
-        std::vector<Token> _tokens;
-        const std::string  _source;
-        uint               _start;      // Start of the current lexeme
-        uint               _current;    // Current position in the source
-        uint               _line;       // Current line number
-        uint               _column;     // Total Lenght till the previous line
-        uint               _lineStart;  // Start of the current line
+        [[nodiscard]] static auto lineInfo(uint start, uint end)
+            -> std::string {
+            return fmt::format("[line {}:{}]", start, end);
+        }
 
-        Logger& _logger;
+        [[nodiscard]] auto lineInfo() const -> std::string {
+            return fmt::format("[line {}:{}]", _line, _column);
+        }
+
+        std::vector<Token::Token> _tokens;
+        const std::string         _source;
+        uint                      _start;    // Start of the current lexeme
+        uint                      _current;  // Current position in the source
+        uint                      _line;     // Current line number
+        uint _column;     // Total Lenght till the previous line
+        uint _lineStart;  // Start of the current line
+
+        Logger::Logger& _logger;
     };
 }  // namespace Krypton

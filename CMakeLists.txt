@@ -11,6 +11,12 @@ set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/build)
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 
+# Set compiler flags
+set(ASAN_FLAGS "-fsanitize=address -fno-omit-frame-pointer")
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ASAN_FLAGS}")
+# add_compile_options(-Wall -Wextra -Wpedantic) Set build type to Debug by
+# default
+
 # Find fmt package
 find_package(fmt REQUIRED)
 
@@ -18,14 +24,17 @@ find_package(fmt REQUIRED)
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
 # Create list of source files
-file(GLOB SOURCES "${PROJECT_SOURCE_DIR}/src/*.cpp")
+file(GLOB SRC_FILES "${PROJECT_SOURCE_DIR}/src/*.cpp")
 
-# Create executable
-add_executable(${PROJECT_NAME} ${SOURCES})
+# Separate main.cpp from other sources
+list(REMOVE_ITEM SRC_FILES "${PROJECT_SOURCE_DIR}/src/main.cpp")
+
+# App executable
+add_executable(${PROJECT_NAME} ${SRC_FILES} src/main.cpp)
 target_link_libraries(${PROJECT_NAME} PRIVATE fmt::fmt)
 
-# Add tests (optional)
-add_executable(${PROJECT_NAME}_test tests/main_test.cpp)
+# Test executable (without main.cpp)
+add_executable(${PROJECT_NAME}_test tests/main_test.cpp ${SRC_FILES})
 target_link_libraries(${PROJECT_NAME}_test PRIVATE fmt::fmt)
 
 # Create symbolic link to executable in project root (Unix-like systems only)

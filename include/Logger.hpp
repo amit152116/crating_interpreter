@@ -9,7 +9,7 @@
 #include <iostream>
 #include <string>
 
-namespace Krypton {
+namespace Logger {
 
     enum class LogLevel : uint8_t { DEBUG, INFO, WARN, ERROR, FATAL };
 
@@ -140,8 +140,8 @@ namespace Krypton {
     };
 
     // Global logger access function
-    inline auto logger() -> Logger& {
+    inline auto getLogger() -> Logger& {
         return Logger::instance();
     }
 
-}  // namespace Krypton
+}  // namespace Logger

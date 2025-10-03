@@ -72,17 +72,17 @@ namespace Krypton {
         }
 
         [[nodiscard]] auto lineInfo() const -> std::string {
-            return fmt::format("[line {}:{}]", _line, _column);
+            return fmt::format("[line {}:{}]", line_, column_);
         }
 
-        std::vector<Token::Token> _tokens;
-        std::string               _source;
-        uint                      _start;    // Start of the current lexeme
-        uint                      _current;  // Current position in the source
-        uint                      _line;     // Current line number
-        uint _column;     // Total Lenght till the previous line
-        uint _lineStart;  // Start of the current line
+        std::vector<Token::Token> tokens_;
+        std::string               source_;
+        uint                      start_;    // Start of the current lexeme
+        uint                      current_;  // Current position in the source
+        uint                      line_;     // Current line number
+        uint column_;     // Total Lenght till the previous line
+        uint lineStart_;  // Start of the current line
 
-        Logger::Logger& _logger;
+        Logger::Logger& logger_;
     };
 }  // namespace Krypton

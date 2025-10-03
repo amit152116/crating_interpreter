@@ -119,7 +119,7 @@ namespace Token {
                         return fmt::format("{}", val);
 
                     } else if constexpr (std::is_same_v<T, bool>) {
-                        return val ? "True" : "False";
+                        return val ? "true" : "false";
                     } else if constexpr (std::is_same_v<T, std::nullptr_t>) {
                         return "nil";
                     }
@@ -131,9 +131,9 @@ namespace Token {
     struct Token {
         Type        type;
         std::string lexeme;
-        uint        line;
-        uint        start;
-        uint        end;
+        uint        line{};
+        uint        start{};
+        uint        end{};
         Literal     literal;
 
         Token(Type type, std::string lexeme, Literal::LiteralVal literal,

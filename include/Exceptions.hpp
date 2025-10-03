@@ -17,12 +17,6 @@ namespace Error {
       private:
 
         Token::Token token_;
-
-        static auto buildMessage(const Token::Token& token,
-                                 const std::string&  message) -> std::string {
-            return fmt::format("[line {}, column {}] Error at '{}': {}",
-                               token.line, token.start, token.lexeme, message);
-        }
     };
 
     class ParseException : public std::runtime_error {

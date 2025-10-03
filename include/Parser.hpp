@@ -1,9 +1,11 @@
 #pragma once
 
-#include "RuntimeException.hpp"
+#include "AstPrinter.hpp"
+#include "Exceptions.hpp"
+#include "Expr.hpp"
+#include "Stmt.hpp"
 #include "TokenType.hpp"
 #include "Tokens.hpp"
-#include "expression.hpp"
 
 #include <functional>
 #include <utility>
@@ -17,9 +19,10 @@ namespace Parser {
         Parser() = default;
 
         explicit Parser(std::vector<Token::Token> tokens)
-            : _tokens(std::move(tokens)) {}
+            : tokens_(std::move(tokens)) {}
 
-        auto parse(std::vector<Token::Token>& tokens) -> Expr::Expr;
+        auto parse(std::vector<Token::Token>& tokens)
+            -> std::vector<Stmt::Stmt>;
 
       private:
 
@@ -57,15 +60,8 @@ namespace Parser {
 
         auto parsePrecedence(uint8_t minPrec = 0) -> Expr::Expr;
 
-        auto parseInfixLeft(std::function<Expr::Expr()>        next,
-                            std::initializer_list<Token::Type> ops)
-            -> Expr::Expr;
-
-        auto parseInfixRight(std::function<Expr::Expr()>        next,
-                             std::initializer_list<Token::Type> ops)
-            -> Expr::Expr;
+        // Parsing Expressions
         auto expression() -> Expr::Expr;
-        auto assignment() -> Expr::Expr;
         auto ternaryOperator() -> Expr::Expr;
         auto logicalOr() -> Expr::Expr;
         auto logicalAnd() -> Expr::Expr;
@@ -82,6 +78,16 @@ namespace Parser {
         auto postfix() -> Expr::Expr;
         auto primary() -> Expr::Expr;
         auto group() -> Expr::Expr;
+        auto parseInfix(std::function<Expr::Expr()>        next,
+                        std::initializer_list<Token::Type> ops,
+                        bool rightAssoc = false) -> Expr::Expr;
+
+        // Parsing Statements
+        auto declartion() -> Stmt::Stmt;
+        auto varDeclartion(Token::Token type) -> Stmt::Stmt;
+        auto statement() -> Stmt::Stmt;
+        auto printStatement() -> Stmt::Stmt;
+        auto expressionStatement() -> Stmt::Stmt;
 
         auto consume(Token::Type type, std::string error) -> Token::Token;
         static auto error(Token::Token token, std::string error)
@@ -103,8 +109,10 @@ namespace Parser {
         [[nodiscard]] auto peek() const -> Token::Token;
         [[nodiscard]] auto isAtEnd() const -> bool;
 
-        uint                      _current = 0;
-        std::vector<Token::Token> _tokens;
+        uint                      current_ = 0;
+        std::vector<Token::Token> tokens_;
+
+        AstPrinter::AstPrinter astPrinter_;
 
     };  // namespace Parser
 }  // namespace Parser

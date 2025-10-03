@@ -22,14 +22,12 @@ Diagnostics:
       - readability-*
       - clang-analyzer-*
     Remove:
-      - cppcoreguidelines-special-member-functions
-      - hicpp-special-member-functions
+      - cppcoreguidelines-avoid-magic-numbers
       - performance-unnecessary-value-param
-      - cppcoreguidelines-non-private-member-variables-in-classes
-      - misc-non-private-member-variables-in-classes
+      - readability-magic-numbers
     CheckOptions:
       readability-identifier-length.MinimumVariableNameLength: 2
-      readability-identifier-length.MinimumParameterNameLength: 2
+      readability-identifier-length.MinimumParameterNameLength: 3
       readability-function-cognitive-complexity.Threshold: 25
       modernize-use-auto.MinTypeNameLength: 6
     FastCheckFilter: Loose

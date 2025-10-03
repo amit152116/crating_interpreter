@@ -1,0 +1,42 @@
+// Complex Expression
+// ((-123 + 45.67) * (!true)) / ("some string" + 100)
+
+(123 - 1);
+
+a = (5 + 3 * 2 ** 2 - -1) >> 1 & 7 | 15 ^ 10 && true || false
+    ? ++2 * (4-- + -4.2) / !(8 % 2)
+    : "fallback" + ("value" + (" is " + nil));
+
+1 + 2           ;
+5 - 3           ;
+4 * 3           ;
+10 / 2          ;
+10 % 3          ;
+2 ** 3          ;
+
+5 & 3           ;
+5 | 2           ;
+5 ^ 1           ;
+5 << 1          ;
+8 >> 2          ;
+
+true && false   ;
+true || false   ;
+!true           ;
+
+"Hello, " + "World!"    ;
+
+"abc" == "abc"          ;
+"abc" != "def"          ;
+"abc" < "bcd"           ;
+"xyz" > "xya"           ;
+
+1 + "abc"               ;
+true + 1                ;
+5 & "abc"               ;
+"abc" << 1              ;
+false * "def"           ;
+
+
+
+

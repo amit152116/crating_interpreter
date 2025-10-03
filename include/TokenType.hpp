@@ -62,7 +62,6 @@ namespace Token {
         STAR_EQUAL,     // '*='
         SLASH,          // '/'
         SLASH_EQUAL,    // '/='
-        SLASH_SLASH,    // '//'
 
         // Keywords.
         PRINT,     // 'print'
@@ -294,13 +293,13 @@ namespace Token {
                 type_str = "AMPERSAND";
                 break;
             case Type::LOGICAL_AND:
-                type_str = "AMPERSAND_AMPERSAND";
+                type_str = "LOGICAL_AND";
                 break;
             case Type::BIT_OR:
                 type_str = "PIPE";
                 break;
             case Type::LOGICAL_OR:
-                type_str = "PIPE_PIPE";
+                type_str = "LOGICAL_OR";
                 break;
             case Type::PLUS_EQUAL:
                 type_str = "PLUS_EQUAL";

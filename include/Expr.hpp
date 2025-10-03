@@ -2,8 +2,8 @@
 
 #include "Logger.hpp"
 #include "Tokens.hpp"
+#include "Visitor.hpp"
 
-#include <sstream>
 #include <utility>
 
 namespace Expr {
@@ -12,22 +12,16 @@ namespace Expr {
 
     using Expr = std::shared_ptr<const ExprBase>;
 
-    template <typename T, typename... Args>
-    auto makeExpr(Args&&... args) -> Expr {
-        return std::make_shared<ExprBase>(T{std::forward<Args>(args)...});
-    }
-
-    struct VariableExpr {
+    struct Variable {
         const Token::Token name;
         Token::Literal     literal;
 
-        explicit VariableExpr(Token::Token name) : name(std::move(name)) {}
+        explicit Variable(Token::Token name) : name(std::move(name)) {}
 
-        explicit VariableExpr(Token::Token               name,
-                              Token::Literal::LiteralVal value)
+        explicit Variable(Token::Token name, Token::Literal::LiteralVal value)
             : name(std::move(name)), literal(value) {}
 
-        explicit VariableExpr(Token::Token name, Token::Literal value)
+        explicit Variable(Token::Token name, Token::Literal value)
             : name(std::move(name)), literal(std::move(value)) {}
 
         [[nodiscard]] auto val() const -> Token::Literal::LiteralVal {
@@ -97,45 +91,21 @@ namespace Expr {
               falseExpr(std::move(falseExpr)) {}
     };
 
-    template <class T, class R>
-    struct VisitorBase {
-        virtual ~VisitorBase()                                     = default;
-        [[nodiscard]] virtual auto visit(const T& expr) const -> R = 0;
-    };
-
-#define OVERRIDE_VISITOR_TYPE                                                  \
-    [[nodiscard]] auto visit(const VariableExpr& expr) const                   \
-        -> ReturnType  final;                                                  \
-    [[nodiscard]] auto visit(const InfixExpr& expr) const -> ReturnType final; \
-    [[nodiscard]] auto visit(const GroupExpr& expr) const -> ReturnType final; \
-    [[nodiscard]] auto visit(const LiteralExpr& expr) const                    \
-        -> ReturnType  final;                                                  \
-    [[nodiscard]] auto visit(const PrefixExpr& expr) const                     \
-        -> ReturnType  final;                                                  \
-    [[nodiscard]] auto visit(const PostfixExpr& expr) const                    \
-        -> ReturnType  final;                                                  \
-    [[nodiscard]] auto visit(const TernaryExpr& expr) const -> ReturnType final;
-
     template <class R>
-    struct Visitor : VisitorBase<VariableExpr, R>,
+    struct Visitor : VisitorBase<Variable, R>,
                      VisitorBase<InfixExpr, R>,
                      VisitorBase<GroupExpr, R>,
                      VisitorBase<LiteralExpr, R>,
                      VisitorBase<PrefixExpr, R>,
                      VisitorBase<PostfixExpr, R>,
-                     VisitorBase<TernaryExpr, R> {
-        using ReturnType = R;
-    };
+                     VisitorBase<TernaryExpr, R> {};
 
     class ExprBase {
       public:
 
         using ExprVariant =
-            std::variant<VariableExpr, InfixExpr, GroupExpr, LiteralExpr,
+            std::variant<Variable, InfixExpr, GroupExpr, LiteralExpr,
                          PrefixExpr, PostfixExpr, TernaryExpr>;
-
-        template <typename T>
-        explicit ExprBase(T&& expr) : expr_(std::forward<T>(expr)) {}
 
         explicit ExprBase(ExprVariant variant) : expr_(std::move(variant)) {}
 
@@ -178,69 +148,9 @@ namespace Expr {
         ExprVariant expr_;
     };
 
-    class AstPrinter : Visitor<std::string> {
-      public:
-
-        AstPrinter() = default;
-
-        auto print(Expr expr) const -> void;
-
-      private:
-
-        OVERRIDE_VISITOR_TYPE
-
-        template <typename... ExprPtrs>
-        auto parenthesize(std::string name, ExprPtrs&&... exprs) const
-            -> ReturnType {
-            constexpr bool AllValid =
-                ((std::is_same_v<std::decay_t<ExprPtrs>, Expr> ||
-                  std::is_same_v<std::decay_t<ExprPtrs>, std::string>) &&
-                 ...);
-            static_assert(AllValid, "Each type must be Expr or std::string");
-
-            std::stringstream ss;
-            ss << " (" << name;
-
-            (
-                [&]() {
-                    using T = std::decay_t<decltype(exprs)>;
-                    if constexpr (std::is_same_v<T, std::string>) {
-                        ss << " " << exprs;
-                    } else {
-                        ss << exprs->accept(*this);
-                    }
-                }(),
-                ...);
-            ss << ")";
-
-            return ss.str();
-        }
-
-        Logger::Logger& logger_ = Logger::Logger::instance();
-    };
-
-    class Interpreter : Visitor<Token::Literal> {
-      public:
-
-        OVERRIDE_VISITOR_TYPE
-        Interpreter() = default;
-        void interpret(const Expr& expr) const;
-
-      private:
-
-        [[nodiscard]] auto evaluate(const Expr& expr) const -> ReturnType;
-
-        static auto isTruthy(Token::Literal literal) -> bool;
-        static auto isEqual(Token::Literal left, Token::Literal right) -> bool;
-        [[nodiscard]] static auto validateAndGetInts(
-            const Token::Literal& left, const Token::Literal& right,
-            const Token::Token& op) -> std::pair<int, int>;
-
-        static void assertBothNumber(const Token::Literal& left,
-                                     const Token::Literal& right,
-                                     const Token::Token&   op);
-
-        Logger::Logger& logger_ = Logger::Logger::instance();
-    };
-
+    template <typename T>
+    auto makeExpr(T&& expr) -> Expr {
+        return std::make_shared<ExprBase>(
+            ExprBase::ExprVariant{std::forward<T>(expr)});
+    }
 }  // namespace Expr

@@ -13,9 +13,9 @@ set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 
 # Set compiler flags
 set(ASAN_FLAGS "-fsanitize=address -fno-omit-frame-pointer")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 -Wall")
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ASAN_FLAGS}")
-# add_compile_options(-Wall -Wextra -Wpedantic) Set build type to Debug by
-# default
+# add_compile_options(-Wall -Wextra -Wpedantic)
 
 # Find fmt package
 find_package(fmt REQUIRED)

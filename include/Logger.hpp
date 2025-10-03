@@ -88,8 +88,7 @@ namespace Logger {
 
             // Format the final log line
             std::string logLine =
-                fmt::format("[{:%Y-%m-%d %H:%M:%S}] [{}] {}\n",
-                            fmt::localtime(timestamp), levelStr, message);
+                fmt::format("[{}] [{}] {}", levelStr, timestamp, message);
 
             // Console output with colors
             fmt::print(fg(levelColor), "{}", logLine);

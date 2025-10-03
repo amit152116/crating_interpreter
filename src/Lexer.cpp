@@ -6,59 +6,58 @@
 namespace Krypton {
 
     Lexer::Lexer()
-        : _start(0),
-          _current(0),
-          _line(1),
-          _column(0),
-          _lineStart(0),
-          _logger(Logger::getLogger()) {}
+        : start_(0),
+          current_(0),
+          line_(1),
+          column_(0),
+          lineStart_(0),
+          logger_(Logger::getLogger()) {}
 
     Lexer::~Lexer() {
-        _tokens.clear();
+        tokens_.clear();
     }
 
     auto Lexer::tokenize(std::string& source) -> std::vector<Token::Token> {
-        // _logger.warn("Source Size : {}", source.size());
-        _source    = source;
-        _start     = 0;
-        _current   = 0;
-        _line      = 1;
-        _column    = 0;
-        _lineStart = 0;
+        source_    = source;
+        start_     = 0;
+        current_   = 0;
+        line_      = 1;
+        column_    = 0;
+        lineStart_ = 0;
 
         // Estimate: One token per ~4 characters is a common heuristic
-        auto estCapacity = _source.size() / 4;
+        auto estCapacity = source_.size() / 4;
         estCapacity      = 1U << (std::__bit_width(estCapacity) - 1);
 
-        if (_tokens.capacity() < estCapacity) {
-            _tokens.reserve(estCapacity);
+        if (tokens_.capacity() < estCapacity) {
+            tokens_.reserve(estCapacity);
         }
-        _tokens.clear();
+        tokens_.clear();
         while (!isAtEnd()) {
             auto token = scanToken();
             addToken(token);
         }
-        return _tokens;
+        return tokens_;
     }
 
     auto Lexer::advance(int step) -> char {
         auto ch = peek();
-        _current += step;
+        current_ += step;
         return ch;
     }
 
     auto Lexer::isAtEnd() const -> bool {
-        return _source.length() <= _current;
+        return source_.length() <= current_;
     }
 
     void Lexer::nextLine() {
-        _line++;
-        _column    = 0;
-        _lineStart = _current - 1;
+        line_++;
+        column_    = 0;
+        lineStart_ = current_ - 1;
     }
 
     auto Lexer::matchNext(char expected) -> bool {
-        if (isAtEnd() || _source.at(_current) != expected) {
+        if (isAtEnd() || source_.at(current_) != expected) {
             return false;
         }
         advance();
@@ -66,21 +65,19 @@ namespace Krypton {
     }
 
     void Lexer::addToken(Token::Token token) {
-        _tokens.emplace_back(token);
-        _logger.debug("Size: {}, Capacity: {}", _tokens.size(),
-                      _tokens.capacity());
+        tokens_.emplace_back(token);
     }
 
     auto Lexer::makeToken(Token::Type                type,
                           Token::Literal::LiteralVal literal) const
         -> Token::Token {
-        auto length = _current - _start;
-        auto text   = _source.substr(_start, length);
+        auto length = current_ - start_;
+        auto text   = source_.substr(start_, length);
 
         auto token = Token::Token{
-            type, text, literal, _start - _lineStart, _current - _lineStart,
-            _line};
-        _logger.debug("Created: {}", token);
+            type, text, literal, start_ - lineStart_, current_ - lineStart_,
+            line_};
+        logger_.debug("Created: {}", token);
         return token;
     }
 
@@ -88,7 +85,7 @@ namespace Krypton {
     auto Lexer::errorToken(fmt::format_string<Args...> fmt,
                            Args&&... args) const -> Token::Token {
         auto message = fmt::format(fmt, std::forward<Args>(args)...);
-        _logger.error(message);
+        logger_.error(message);
         return makeToken(Token::Type::ERROR, message);
     }
 
@@ -96,14 +93,14 @@ namespace Krypton {
         if (isAtEnd()) {
             return '\0';
         }
-        return _source.at(_current);
+        return source_.at(current_);
     }
 
     auto Lexer::peekNext() const -> char {
-        if (_source.length() <= 1 + _current) {
+        if (source_.length() <= 1 + current_) {
             return '\0';
         }
-        return _source.at(_current + 1);
+        return source_.at(current_ + 1);
     }
 
     auto Lexer::getStringLiteral() -> Token::Token {
@@ -111,7 +108,7 @@ namespace Krypton {
         while (peek() != '"' && !isAtEnd()) {
             if (peek() == '\n') {
                 nextLine();
-                newLines.push_back(_current - _start);
+                newLines.push_back(current_ - start_);
             }
             advance();
         }
@@ -122,11 +119,11 @@ namespace Krypton {
         advance();
 
         // Trim the surrounding quotes.
-        auto value = _source.substr(_start, _current - _start);
+        auto value = source_.substr(start_ + 1, (current_ - start_) - 2);
 
         // Remove the newline characters from the string.
         for (auto it = newLines.rbegin(); it != newLines.rend(); ++it) {
-            value.erase(*it, 1);
+            value.erase(*it - 1, 1);
         }
         return makeToken(Token::Type::STRING, value);
     }
@@ -145,7 +142,7 @@ namespace Krypton {
             }
         }
         double number =
-            std::stod(std::string(_source.substr(_start, _current)));
+            std::stod(std::string(source_.substr(start_, current_)));
         return makeToken(Token::Type::NUMBER, number);
     }
 
@@ -166,7 +163,7 @@ namespace Krypton {
         }
 
         // Check if the identifier is a keyword
-        auto identifier = _source.substr(_start, _current - _start);
+        auto identifier = source_.substr(start_, current_ - start_);
         auto type       = checkKeyword(identifier);
 
         return makeToken(type);
@@ -175,7 +172,7 @@ namespace Krypton {
     auto Lexer::scanToken() -> Token::Token {
         // Skip any whitespace or comments before starting a token
         while (true) {
-            _start = _current;
+            start_ = current_;
             if (isAtEnd()) {
                 return makeToken(Token::Type::EOF_);
             }
@@ -323,9 +320,6 @@ namespace Krypton {
             case '/':
                 if (matchNext('=')) {
                     return makeToken(Token::Type::SLASH_EQUAL);
-                }
-                if (matchNext('/')) {
-                    return makeToken(Token::Type::SLASH_SLASH);
                 }
                 return makeToken(Token::Type::SLASH);
             case '"':

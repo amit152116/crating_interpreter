@@ -1,4 +1,6 @@
-*.json
+**/*.json
 Krypton
 .cache
 .build
+**/*.zst
+*.out.*

@@ -7,19 +7,63 @@
 
 namespace Parser {
 
-    auto Parser::parse(std::vector<Token::Token>& tokens) -> Expr::Expr {
-        _tokens  = tokens;
-        _current = 0;
-        try {
-            return expression();
-        } catch (Error::ParseException& e) {
-            Logger::getLogger().error(e.what());
-            return nullptr;
+    auto Parser::parse(std::vector<Token::Token>& tokens)
+        -> std::vector<Stmt::Stmt> {
+        tokens_  = tokens;
+        current_ = 0;
+        std::vector<Stmt::Stmt> statments;
+
+        while (!isAtEnd()) {
+            statments.push_back(declartion());
         }
+        return statments;
+    }
+
+    auto Parser::declartion() -> Stmt::Stmt {
+        try {
+            if (match({Token::Type::VAR, Token::Type::VAL})) {
+                return varDeclartion(previous());
+            }
+            return statement();
+        } catch (Error::ParseException& e) {
+            synchronize();
+            Logger::getLogger().error(e.what());
+        }
+        return {};
+    }
+
+    auto Parser::varDeclartion(Token::Token type) -> Stmt::Stmt {
+        auto name = consume(Token::Type::IDENTIFIER, "Expect variable name");
+
+        Expr::Expr initializer = nullptr;
+        if (match({Token::Type::EQUAL})) {
+            initializer = expression();
+        }
+        consume(Token::Type::SEMICOLON, "Expect ';' after variable declartion");
+        return Stmt::makeStmt(Stmt::Variable{name, initializer, type});
+    }
+
+    auto Parser::statement() -> Stmt::Stmt {
+        if (match({Token::Type::PRINT})) {
+            return printStatement();
+        }
+        return expressionStatement();
+    }
+
+    auto Parser::printStatement() -> Stmt::Stmt {
+        auto value = expression();
+        consume(Token::Type::SEMICOLON, "Expect ';' after value");
+        return Stmt::makeStmt(Stmt::Print{value});
+    }
+
+    auto Parser::expressionStatement() -> Stmt::Stmt {
+        auto value = expression();
+        consume(Token::Type::SEMICOLON, "Expect ';' after value");
+        return Stmt::makeStmt(Stmt::Expression{value});
     }
 
     auto Parser::expression() -> Expr::Expr {
-        return assignment();
+        return ternaryOperator();
     }
 
     auto Parser::parsePrecedence(uint8_t minPrec) -> Expr::Expr {
@@ -30,6 +74,7 @@ namespace Parser {
             error(token, "Expected expression.");
         }
         Expr::Expr left = (rule.prefix)();
+        astPrinter_.print(left);
 
         // 2) While the next token is an infix/postfix of >= minPrec
         while ((peek().type != Token::Type::EOF_ &&
@@ -39,6 +84,7 @@ namespace Parser {
             Token::Token op      = advance();
             auto         infRule = getRule(op.type);
             left                 = (infRule.infix)(std::move(left));
+            astPrinter_.print(left);
         }
 
         return left;
@@ -48,15 +94,15 @@ namespace Parser {
         Token::Token op = previous();  // We already consumed the operator token
 
         // Use UNARY precedence so it binds tightly to the right
-        Expr::Expr right = parsePrecedence(10);
+        Expr::Expr right = parsePrecedence(2);
 
-        return Expr::makeExpr<Expr::PrefixExpr>(op, std::move(right));
+        return Expr::makeExpr(Expr::PrefixExpr{op, std::move(right)});
     }
 
     auto Parser::parsePostfix(Expr::Expr left) -> Expr::Expr {
         Token::Token op = previous();  // the postfix token (++ or --)
 
-        return Expr::makeExpr<Expr::PostfixExpr>(std::move(left), op);
+        return Expr::makeExpr(Expr::PostfixExpr(std::move(left), op));
     }
 
     auto Parser::parseBinary(Expr::Expr left) -> Expr::Expr {
@@ -67,39 +113,40 @@ namespace Parser {
 
         Expr::Expr right = parsePrecedence(rightPrec);
 
-        return Expr::makeExpr<Expr::InfixExpr>(std::move(left), op,
-                                               std::move(right));
+        return Expr::makeExpr(
+            Expr::InfixExpr(std::move(left), op, std::move(right)));
     }
 
     auto Parser::parseTernary(Expr::Expr condition) -> Expr::Expr {
         // '?' has already been consumed
-        Expr::Expr thenBranch = parsePrecedence(1);
+        Expr::Expr thenBranch = parsePrecedence(13);
 
         // Require and consume ':'
         consume(Token::Type::COLON,
                 "Expect ':' after then-branch of ternary operator.");
 
-        Expr::Expr elseBranch = parsePrecedence(1);
+        Expr::Expr elseBranch = parsePrecedence(14);
 
-        return Expr::makeExpr<Expr::TernaryExpr>(
-            std::move(condition), std::move(thenBranch), std::move(elseBranch));
+        return Expr::makeExpr(Expr::TernaryExpr(std::move(condition),
+                                                std::move(thenBranch),
+                                                std::move(elseBranch)));
     }
 
     auto Parser::parsePrimary() -> Expr::Expr {
         switch (previous().type) {
             case Token::Type::NUMBER:
             case Token::Type::STRING:
-                return Expr::makeExpr<Expr::LiteralExpr>(
-                    previous().literal);  // or string value
+                return Expr::makeExpr(
+                    Expr::LiteralExpr(previous().literal));  // or string value
 
             case Token::Type::TRUE:
-                return Expr::makeExpr<Expr::LiteralExpr>(true);
+                return Expr::makeExpr(Expr::LiteralExpr(true));
 
             case Token::Type::FALSE:
-                return Expr::makeExpr<Expr::LiteralExpr>(false);
+                return Expr::makeExpr(Expr::LiteralExpr(false));
 
             case Token::Type::NIL:
-                return Expr::makeExpr<Expr::LiteralExpr>(nullptr);
+                return Expr::makeExpr(Expr::LiteralExpr(nullptr));
 
             case Token::Type::IDENTIFIER:
                 return parseVariable();
@@ -109,7 +156,7 @@ namespace Parser {
 
                 consume(Token::Type::RIGHT_PAREN,
                         "Expect ')' after expression.");
-                return Expr::makeExpr<Expr::GroupExpr>(std::move(expr));
+                return Expr::makeExpr(Expr::GroupExpr(std::move(expr)));
             }
 
             default:
@@ -117,40 +164,23 @@ namespace Parser {
         }
     }
 
-    auto Parser::parseInfixLeft(std::function<Expr::Expr()>        next,
-                                std::initializer_list<Token::Type> ops)
-        -> Expr::Expr {
+    auto Parser::parseInfix(std::function<Expr::Expr()>        next,
+                            std::initializer_list<Token::Type> ops,
+                            bool rightAssoc) -> Expr::Expr {
         auto expr = next();
 
         while (match(ops)) {
-            auto operator_ = previous();
-            auto right     = next();
-            expr           = Expr::makeExpr<Expr::InfixExpr>(
-                std::move(expr), std::move(operator_), std::move(right));
+            auto       operator_ = previous();
+            Expr::Expr right;
+            if (rightAssoc) {
+                right = parseInfix(next, ops, rightAssoc);
+            } else {
+                right = next();
+            }
+            expr = Expr::makeExpr(Expr::InfixExpr(
+                std::move(expr), std::move(operator_), std::move(right)));
         }
         return expr;
-    }
-
-    auto Parser::parseInfixRight(std::function<Expr::Expr()>        next,
-                                 std::initializer_list<Token::Type> ops)
-        -> Expr::Expr {
-        auto expr = next();
-
-        while (match(ops)) {
-            auto operator_ = previous();
-            auto right     = parseInfixRight(next, ops);
-            expr           = Expr::makeExpr<Expr::InfixExpr>(
-                std::move(expr), std::move(operator_), std::move(right));
-        }
-        return expr;
-    }
-
-    auto Parser::assignment() -> Expr::Expr {
-        return parseInfixLeft(
-            [this] { return ternaryOperator(); },
-            {Token::Type::EQUAL, Token::Type::PLUS_EQUAL,
-             Token::Type::MINUS_EQUAL, Token::Type::SLASH_EQUAL,
-             Token::Type::STAR_EQUAL});
     }
 
     auto Parser::ternaryOperator() -> Expr::Expr {
@@ -160,71 +190,67 @@ namespace Parser {
             auto trueExpr = logicalOr();
             consume(Token::Type::COLON,
                     "Expected ':' after true branch of ternary.");
-            auto falseExpr = assignment();  // recursive to support nested
-            condition = Expr::makeExpr<Expr::TernaryExpr>(std::move(condition),
-                                                          std::move(trueExpr),
-                                                          std::move(falseExpr));
+            auto falseExpr = ternaryOperator();  // recursive to support nested
+            condition = Expr::makeExpr(Expr::TernaryExpr(std::move(condition),
+                                                         std::move(trueExpr),
+                                                         std::move(falseExpr)));
         }
         return condition;
     }
 
     auto Parser::logicalOr() -> Expr::Expr {
-        return parseInfixLeft([this] { return logicalAnd(); },
-                              {Token::Type::LOGICAL_OR});
+        return parseInfix([this] { return logicalAnd(); },
+                          {Token::Type::LOGICAL_OR});
     }
 
     auto Parser::logicalAnd() -> Expr::Expr {
-        return parseInfixLeft([this] { return bitOr(); },
-                              {Token::Type::LOGICAL_AND});
+        return parseInfix([this] { return bitOr(); },
+                          {Token::Type::LOGICAL_AND});
     }
 
     auto Parser::bitOr() -> Expr::Expr {
-        return parseInfixLeft([this] { return bitXor(); },
-                              {Token::Type::BIT_OR});
+        return parseInfix([this] { return bitXor(); }, {Token::Type::BIT_OR});
     }
 
     auto Parser::bitXor() -> Expr::Expr {
-        return parseInfixLeft([this] { return bitAnd(); },
-                              {Token::Type::BIT_XOR});
+        return parseInfix([this] { return bitAnd(); }, {Token::Type::BIT_XOR});
     }
 
     auto Parser::bitAnd() -> Expr::Expr {
-        return parseInfixLeft([this] { return equality(); },
-                              {Token::Type::BIT_AND});
+        return parseInfix([this] { return equality(); },
+                          {Token::Type::BIT_AND});
     }
 
     auto Parser::equality() -> Expr::Expr {
-        return parseInfixLeft(
-            [this] { return comparison(); },
-            {Token::Type::EQUAL_EQUAL, Token::Type::BANG_EQUAL});
+        return parseInfix([this] { return comparison(); },
+                          {Token::Type::EQUAL_EQUAL, Token::Type::BANG_EQUAL});
     }
 
     auto Parser::comparison() -> Expr::Expr {
-        return parseInfixLeft([this] { return bitShift(); },
-                              {Token::Type::GREATER, Token::Type::GREATER_EQUAL,
-                               Token::Type::LESS_EQUAL, Token::Type::LESS});
+        return parseInfix([this] { return bitShift(); },
+                          {Token::Type::GREATER, Token::Type::GREATER_EQUAL,
+                           Token::Type::LESS_EQUAL, Token::Type::LESS});
     }
 
     auto Parser::bitShift() -> Expr::Expr {
-        return parseInfixLeft(
-            [this] { return term(); },
-            {Token::Type::LEFT_SHIFT, Token::Type::RIGHT_SHIFT});
+        return parseInfix([this] { return term(); },
+                          {Token::Type::LEFT_SHIFT, Token::Type::RIGHT_SHIFT});
     }
 
     auto Parser::term() -> Expr::Expr {
-        return parseInfixLeft([this] { return factor(); },
-                              {Token::Type::MINUS, Token::Type::PLUS});
+        return parseInfix([this] { return factor(); },
+                          {Token::Type::MINUS, Token::Type::PLUS});
     }
 
     auto Parser::factor() -> Expr::Expr {
-        return parseInfixLeft([this] { return exponent(); },
-                              {Token::Type::SLASH, Token::Type::STAR,
-                               Token::Type::PERCENT, Token::Type::SLASH_SLASH});
+        return parseInfix(
+            [this] { return exponent(); },
+            {Token::Type::SLASH, Token::Type::STAR, Token::Type::PERCENT});
     }
 
     auto Parser::exponent() -> Expr::Expr {
-        return parseInfixRight([this] { return prefix(); },
-                               {Token::Type::STAR_STAR});
+        return parseInfix([this] { return prefix(); }, {Token::Type::STAR_STAR},
+                          true);
     }
 
     auto Parser::prefix() -> Expr::Expr {
@@ -232,8 +258,8 @@ namespace Parser {
                    Token::Type::PLUS_PLUS, Token::Type::MINUS_MINUS})) {
             auto operator_ = previous();
             auto right     = prefix();
-            return Expr::makeExpr<Expr::PrefixExpr>(std::move(operator_),
-                                                    std::move(right));
+            return Expr::makeExpr(
+                Expr::PrefixExpr(std::move(operator_), std::move(right)));
         }
         return postfix();
     }
@@ -243,8 +269,8 @@ namespace Parser {
 
         if (match({Token::Type::PLUS_PLUS, Token::Type::MINUS_MINUS})) {
             auto operator_ = previous();
-            expr           = Expr::makeExpr<Expr::PostfixExpr>(std::move(expr),
-                                                               std::move(operator_));
+            expr           = Expr::makeExpr(
+                Expr::PostfixExpr(std::move(expr), std::move(operator_)));
         }
 
         return expr;
@@ -252,17 +278,17 @@ namespace Parser {
 
     auto Parser::primary() -> Expr::Expr {
         if (match({Token::Type::TRUE})) {
-            return Expr::makeExpr<Expr::LiteralExpr>(true);
+            return Expr::makeExpr(Expr::LiteralExpr(true));
         }
         if (match({Token::Type::FALSE})) {
-            return Expr::makeExpr<Expr::LiteralExpr>(false);
+            return Expr::makeExpr(Expr::LiteralExpr(false));
         }
         if (match({Token::Type::NIL})) {
-            return Expr::makeExpr<Expr::LiteralExpr>(nullptr);
+            return Expr::makeExpr(Expr::LiteralExpr(nullptr));
         }
         if (match({Token::Type::NUMBER, Token::Type::STRING})) {
-            return Expr::makeExpr<Expr::LiteralExpr>(
-                std::move(previous().literal));
+            return Expr::makeExpr(
+                Expr::LiteralExpr(std::move(previous().literal)));
         }
         if (match({Token::Type::IDENTIFIER})) {
             return parseVariable();
@@ -274,13 +300,13 @@ namespace Parser {
         if (match({Token::Type::LEFT_PAREN})) {
             auto expr = expression();
             consume(Token::Type::RIGHT_PAREN, "Expect ')' after expression.");
-            return Expr::makeExpr<Expr::GroupExpr>(std::move(expr));
+            return Expr::makeExpr(Expr::GroupExpr(std::move(expr)));
         }
         throw error(peek(), "Expect expression.");
     }
 
     auto Parser::parseVariable() -> Expr::Expr {
-        return Expr::makeExpr<Expr::VariableExpr>(previous());
+        return Expr::makeExpr(Expr::Variable(previous()));
     }
 
     auto Parser::getRule(Token::Type type) -> ParseRule {
@@ -314,12 +340,12 @@ namespace Parser {
             case Token::Type::STAR:
             case Token::Type::SLASH:
             case Token::Type::PERCENT:
-            case Token::Type::SLASH_SLASH:
 
                 return {
                     4, nullptr, [this](auto&& left) {
                         return parseBinary(std::forward<decltype(left)>(left));
                     }};
+
             case Token::Type::PLUS:
             case Token::Type::MINUS:
 
@@ -379,17 +405,6 @@ namespace Parser {
                     13, nullptr, [this](auto&& left) {
                         return parseBinary(std::forward<decltype(left)>(left));
                     }};
-            case Token::Type::EQUAL:
-            case Token::Type::PLUS_EQUAL:
-            case Token::Type::MINUS_EQUAL:
-            case Token::Type::SLASH_EQUAL:
-            case Token::Type::STAR_EQUAL:
-                return {
-                    14, nullptr,
-                    [this](auto&& left) {
-                        return parseBinary(std::forward<decltype(left)>(left));
-                    },
-                    true};
             case Token::Type::QUESTION:
                 return {
                     14, nullptr,
@@ -421,7 +436,7 @@ namespace Parser {
                 case Token::Type::RETURN:
                     return;
                 default:
-                    break;
+                    continue;
             }
             advance();
         }
@@ -452,7 +467,7 @@ namespace Parser {
 
     auto Parser::advance() -> Token::Token {
         if (!isAtEnd()) {
-            _current++;
+            current_++;
         }
         return previous();
     }
@@ -465,11 +480,11 @@ namespace Parser {
     }
 
     auto Parser::previous() const -> Token::Token {
-        return _tokens.at(_current - 1);
+        return tokens_.at(current_ - 1);
     }
 
     auto Parser::peek() const -> Token::Token {
-        return _tokens.at(_current);
+        return tokens_.at(current_);
     }
 
     auto Parser::isAtEnd() const -> bool {

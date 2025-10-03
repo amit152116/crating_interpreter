@@ -15,6 +15,9 @@ namespace Token {
         NUMBER,      // Numeric literal
         IDENTIFIER,  // Identifier (variable, function name, etc.)
         STRING,      // String literal
+        TRUE,        // 'true'
+        FALSE,       // 'false'
+        NIL,         // 'nil'
 
         // Single-character tokens.
         LEFT_PAREN,     // '('
@@ -30,68 +33,68 @@ namespace Token {
         COLON,          // ':'
         PERCENT,        // '%'
         DOLLAR,         // '$'
-        CARET,          // '^'
+        BIT_XOR,        // '^'
         TILDE,          // '~'
 
         // One or two character tokens.
-        BANG,                 // '!'
-        BANG_EQUAL,           // '!='
-        EQUAL,                // '='
-        EQUAL_EQUAL,          // '=='
-        GREATER,              // '>'
-        GREATER_GREATER,      // '>>'
-        GREATER_EQUAL,        // '>='
-        LESS,                 // '<'
-        LESS_LESS,            // '<<'
-        LESS_EQUAL,           // '<='
-        AMPERSAND,            // '&'
-        AMPERSAND_AMPERSAND,  // '&&'
-        PIPE,                 // '|'
-        PIPE_PIPE,            // '||'
-        PLUS,                 // '+'
-        PLUS_PLUS,            // '++'
-        PLUS_EQUAL,           // '+='
-        MINUS,                // '-'
-        MINUS_MINUS,          // '--'
-        MINUS_EQUAL,          // '-='
-        STAR,                 // '*'
-        STAR_STAR,            // '**'
-        STAR_EQUAL,           // '*='
-        SLASH,                // '/'
-        SLASH_EQUAL,          // '/='
+        BANG,           // '!'
+        BANG_EQUAL,     // '!='
+        EQUAL,          // '='
+        EQUAL_EQUAL,    // '=='
+        GREATER,        // '>'
+        GREATER_EQUAL,  // '>='
+        LESS,           // '<'
+        LESS_EQUAL,     // '<='
+        LEFT_SHIFT,     // '<<'
+        RIGHT_SHIFT,    // '>>'
+        BIT_OR,         // '|'
+        BIT_AND,        // '&'
+        LOGICAL_AND,    // '&&'
+        LOGICAL_OR,     // '||'
+        PLUS,           // '+'
+        PLUS_PLUS,      // '++'
+        PLUS_EQUAL,     // '+='
+        MINUS,          // '-'
+        MINUS_MINUS,    // '--'
+        MINUS_EQUAL,    // '-='
+        STAR,           // '*'
+        STAR_STAR,      // '**'
+        STAR_EQUAL,     // '*='
+        SLASH,          // '/'
+        SLASH_EQUAL,    // '/='
+        SLASH_SLASH,    // '//'
 
         // Keywords.
+        PRINT,     // 'print'
         IF,        // 'if'
+        ELSE,      // 'else'
         OR,        // 'or'
+        AND,       // 'and'
         VAR,       // 'var'
         VAL,       // 'val'
-        AND,       // 'and'
-        FOR,       // 'for'
-        NIL,       // 'nil'
-        TRY,       // 'try'
-        CASE,      // 'case'
-        ELSE,      // 'else'
-        TRUE,      // 'true'
-        THIS,      // 'this'
-        INIT,      // 'init'
-        WHILE,     // 'while'
-        BREAK,     // 'break'
-        CATCH,     // 'catch'
-        CLASS,     // 'class'
         CONST,     // 'const'
-        FALSE,     // 'false'
-        PRINT,     // 'print'
+        FOR,       // 'for'
+        WHILE,     // 'while'
+        TRY,       // 'try'
         THROW,     // 'throw'
-        SUPER,     // 'super'
-        SWITCH,    // 'switch'
-        RETURN,    // 'return'
+        CATCH,     // 'catch'
         FINALLY,   // 'finally'
+        SWITCH,    // 'switch'
+        CASE,      // 'case'
+        BREAK,     // 'break'
         CONTINUE,  // 'continue'
+        CLASS,     // 'class'
+        INIT,      // 'init'
+        THIS,      // 'this'
+        SUPER,     // 'super'
         FUNCTION,  // 'function'
+        RETURN,    // 'return'
 
         // Special tokens
-        EOF_,  // End of file
-        ERROR  // Error token
+        EOF_,            // End of file
+        ERROR,           // Error token
+        SINGLE_COMMENT,  // Single-line comment
+        MULTI_COMMENT,   // Multi-line comment
     };
 
     inline auto getKeywordMap() -> std::unordered_map<std::string, Type> {
@@ -275,28 +278,28 @@ namespace Token {
             case Type::DOLLAR:
                 type_str = "DOLLAR";
                 break;
-            case Type::CARET:
+            case Type::BIT_XOR:
                 type_str = "CARET";
                 break;
             case Type::TILDE:
                 type_str = "TILDE";
                 break;
-            case Type::GREATER_GREATER:
+            case Type::RIGHT_SHIFT:
                 type_str = "GREATER_GREATER";
                 break;
-            case Type::LESS_LESS:
+            case Type::LEFT_SHIFT:
                 type_str = "LESS_LESS";
                 break;
-            case Type::AMPERSAND:
+            case Type::BIT_AND:
                 type_str = "AMPERSAND";
                 break;
-            case Type::AMPERSAND_AMPERSAND:
+            case Type::LOGICAL_AND:
                 type_str = "AMPERSAND_AMPERSAND";
                 break;
-            case Type::PIPE:
+            case Type::BIT_OR:
                 type_str = "PIPE";
                 break;
-            case Type::PIPE_PIPE:
+            case Type::LOGICAL_OR:
                 type_str = "PIPE_PIPE";
                 break;
             case Type::PLUS_EQUAL:
@@ -331,6 +334,12 @@ namespace Token {
                 break;
             case Type::CONST:
                 type_str = "CONST";
+                break;
+            case Type::SINGLE_COMMENT:
+                type_str = "SINGLE-LINE COMMENT";
+                break;
+            case Type::MULTI_COMMENT:
+                type_str = "MULTI-LINE COMMENT";
                 break;
             default:
                 type_str = "UNKNOWN";

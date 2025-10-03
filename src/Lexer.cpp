@@ -1,29 +1,44 @@
 #include "Lexer.hpp"
 
+#include <bit>
 #include <utility>
 
 namespace Krypton {
 
-    Lexer::Lexer(std::string source)
-        : _source(std::move(source)),
-          _start(0),
+    Lexer::Lexer()
+        : _start(0),
           _current(0),
           _line(1),
           _column(0),
           _lineStart(0),
-          _logger(Logger::getLogger()) {
-        tokenize();
-    }
+          _logger(Logger::getLogger()) {}
 
     Lexer::~Lexer() {
         _tokens.clear();
     }
 
-    void Lexer::tokenize() {
+    auto Lexer::tokenize(std::string& source) -> std::vector<Token::Token> {
+        // _logger.warn("Source Size : {}", source.size());
+        _source    = source;
+        _start     = 0;
+        _current   = 0;
+        _line      = 1;
+        _column    = 0;
+        _lineStart = 0;
+
+        // Estimate: One token per ~4 characters is a common heuristic
+        auto estCapacity = _source.size() / 4;
+        estCapacity      = 1U << (std::__bit_width(estCapacity) - 1);
+
+        if (_tokens.capacity() < estCapacity) {
+            _tokens.reserve(estCapacity);
+        }
+        _tokens.clear();
         while (!isAtEnd()) {
             auto token = scanToken();
             addToken(token);
         }
+        return _tokens;
     }
 
     auto Lexer::advance(int step) -> char {
@@ -52,10 +67,12 @@ namespace Krypton {
 
     void Lexer::addToken(Token::Token token) {
         _tokens.emplace_back(token);
+        _logger.debug("Size: {}, Capacity: {}", _tokens.size(),
+                      _tokens.capacity());
     }
 
-    auto Lexer::makeToken(Token::Type                  type,
-                          Token::LiteralValue::Literal literal) const
+    auto Lexer::makeToken(Token::Type                type,
+                          Token::Literal::LiteralVal literal) const
         -> Token::Token {
         auto length = _current - _start;
         auto text   = _source.substr(_start, length);
@@ -63,7 +80,7 @@ namespace Krypton {
         auto token = Token::Token{
             type, text, literal, _start - _lineStart, _current - _lineStart,
             _line};
-        _logger.info("Created: {}", token);
+        _logger.debug("Created: {}", token);
         return token;
     }
 
@@ -177,16 +194,14 @@ namespace Krypton {
             // Handle comments
             if (ch == '/') {
                 if (matchNext('/')) {
-                    _logger.debug("{} Single-line comment detected",
-                                  lineInfo());
                     while (!matchNext('\n')) {
                         advance();
                     }
+                    auto comment = makeToken(Token::Type::SINGLE_COMMENT);
                     nextLine();
                     continue;
                 }
                 if (matchNext('*')) {
-                    uint startLine = _line;
                     while (true) {
                         if (isAtEnd()) {
                             return errorToken(
@@ -202,8 +217,7 @@ namespace Krypton {
                         }
                         advance();
                     }
-                    _logger.debug("{} Multi-line comment detected",
-                                  lineInfo(startLine, _line));
+                    auto comment = makeToken(Token::Type::MULTI_COMMENT);
                     continue;
                 }
             }
@@ -242,7 +256,7 @@ namespace Krypton {
             case '$':
                 return makeToken(Token::Type::DOLLAR);
             case '^':
-                return makeToken(Token::Type::CARET);
+                return makeToken(Token::Type::BIT_XOR);
             case '~':
                 return makeToken(Token::Type::TILDE);
 
@@ -261,7 +275,7 @@ namespace Krypton {
                     return makeToken(Token::Type::GREATER_EQUAL);
                 }
                 if (matchNext('>')) {
-                    return makeToken(Token::Type::GREATER_GREATER);
+                    return makeToken(Token::Type::RIGHT_SHIFT);
                 }
                 return makeToken(Token::Type::GREATER);
             case '<':
@@ -269,19 +283,19 @@ namespace Krypton {
                     return makeToken(Token::Type::LESS_EQUAL);
                 }
                 if (matchNext('<')) {
-                    return makeToken(Token::Type::LESS_LESS);
+                    return makeToken(Token::Type::LEFT_SHIFT);
                 }
                 return makeToken(Token::Type::LESS);
             case '&':
                 if (matchNext('&')) {
-                    return makeToken(Token::Type::AMPERSAND_AMPERSAND);
+                    return makeToken(Token::Type::LOGICAL_AND);
                 }
-                return makeToken(Token::Type::AMPERSAND);
+                return makeToken(Token::Type::BIT_AND);
             case '|':
                 if (matchNext('|')) {
-                    return makeToken(Token::Type::PIPE_PIPE);
+                    return makeToken(Token::Type::LOGICAL_OR);
                 }
-                return makeToken(Token::Type::PIPE);
+                return makeToken(Token::Type::BIT_OR);
             case '+':
                 if (matchNext('+')) {
                     return makeToken(Token::Type::PLUS_PLUS);
@@ -309,6 +323,9 @@ namespace Krypton {
             case '/':
                 if (matchNext('=')) {
                     return makeToken(Token::Type::SLASH_EQUAL);
+                }
+                if (matchNext('/')) {
+                    return makeToken(Token::Type::SLASH_SLASH);
                 }
                 return makeToken(Token::Type::SLASH);
             case '"':

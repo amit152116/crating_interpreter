@@ -5,17 +5,17 @@
 
 #include <utility>
 
-namespace Parser {
+namespace Expression {
     class ExprBase;
     class Binary;
     class Grouping;
     class Literal;
     class Unary;
 
-    using ExprDecl = std::shared_ptr<ExprBase>;
+    using Expr = std::shared_ptr<ExprBase>;
 
     template <typename T, typename... Args>
-    auto makeExpr(Args&&... args) -> ExprDecl {
+    auto makeExpr(Args&&... args) -> Expr {
         return std::make_shared<T>(std::forward<Args>(args)...);
     }
 
@@ -63,11 +63,11 @@ namespace Parser {
     class Binary : public ExprBase {
       public:
 
-        ExprDecl           _left;
+        Expr               _left;
         const Token::Token _operator;
-        ExprDecl           _right;
+        Expr               _right;
 
-        explicit Binary(ExprDecl left, Token::Token operator_, ExprDecl right)
+        explicit Binary(Expr left, Token::Token operator_, Expr right)
             : _left(std::move(left)),
               _operator(std::move(operator_)),
               _right(std::move(right)) {}
@@ -80,9 +80,9 @@ namespace Parser {
     class Grouping : public ExprBase {
       public:
 
-        ExprDecl _expr;
+        Expr _expr;
 
-        explicit Grouping(ExprDecl expr) : _expr(std::move(expr)) {}
+        explicit Grouping(Expr expr) : _expr(std::move(expr)) {}
 
         ~Grouping() override = default;
 
@@ -93,9 +93,9 @@ namespace Parser {
       public:
 
         const Token::Token _operator;
-        ExprDecl           _right;
+        Expr               _right;
 
-        explicit Unary(Token::Token operator_, ExprDecl right)
+        explicit Unary(Token::Token operator_, Expr right)
             : _operator(std::move(operator_)), _right(std::move(right)) {}
 
         ~Unary() override = default;
@@ -106,9 +106,9 @@ namespace Parser {
     class Literal : public ExprBase {
       public:
 
-        const Token::LiteralValue _literal;
+        const Token::Literal _literal;
 
-        explicit Literal(Token::LiteralValue::Literal literal)
+        explicit Literal(Token::Literal::LiteralVal literal)
             : _literal(std::move(literal)) {}
 
         ~Literal() override = default;
@@ -127,7 +127,7 @@ namespace Parser {
 
         OVERRIDE_VISITORS
 
-        auto print(ExprDecl expr) -> void {
+        auto print(Expr expr) -> void {
             _result = {};
             expr->accept(*this);
             _logger.info("Expression: {}", _result);
@@ -149,9 +149,8 @@ namespace Parser {
             _result.append(name);
             (
                 [&] {
-                    static_assert(
-                        std::is_same_v<std::decay_t<ExprPtrs>, ExprDecl>,
-                        "Arguments must be of type ExprDecl");
+                    static_assert(std::is_same_v<std::decay_t<ExprPtrs>, Expr>,
+                                  "Arguments must be of type ExprDecl");
 
                     _result.append(" ");
                     exprs->accept(*this);
@@ -161,4 +160,4 @@ namespace Parser {
         }
     };
 
-}  // namespace Parser
+}  // namespace Expression

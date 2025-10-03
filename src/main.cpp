@@ -1,5 +1,6 @@
 #include "Lexer.hpp"
 #include "Logger.hpp"
+#include "Parser.hpp"
 
 #include <filesystem>
 #include <fstream>
@@ -7,15 +8,18 @@
 #include <sstream>
 #include <string>
 
-const std::string FILE_EXTENSION = ".krp";
-
 namespace {
+
+    const std::string FILE_EXTENSION = ".krp";
 
     void runPrompt() {
         std::string line;
 
+        auto lexer       = Krypton::Lexer();
+        auto parser      = Parser::Parser();
+        auto interpreter = Expr::Interpreter();
         while (true) {
-            std::cout << ">> ";
+            std::cout << ">>> ";
             if (!std::getline(std::cin, line)) {
                 std::cout << "\n[EOF received. Exiting...]\n";
                 std::cout.flush();
@@ -28,7 +32,9 @@ namespace {
                 std::cout << "[Exiting prompt...]\n";
                 break;  // Exit the prompt
             }
-            auto lexer = Krypton::Lexer(line + "\n");
+            line.append("\n");
+            auto tokens = lexer.tokenize(line);
+            interpreter.interpret(parser.parse(tokens));
         }
     }
 
@@ -50,22 +56,27 @@ namespace {
         {
             std::ifstream readFile(file);
             if (readFile.is_open()) {
-                std::stringstream src_stream;
-                src_stream << readFile.rdbuf();
-                source = src_stream.str();
+                std::stringstream ss;
+                ss << readFile.rdbuf();
+                source = ss.str();
             } else {
                 Logger::getLogger().error("File found but failed to open: {}",
                                           file);
             }
         }
-        auto lexer = Krypton::Lexer(source);
+        auto lexer  = Krypton::Lexer();
+        auto tokens = lexer.tokenize(source);
+        auto parser = Parser::Parser();
+
+        auto interpreter = Expr::Interpreter();
+        interpreter.interpret(parser.parse(tokens));
         return 0;
     }
 }  // namespace
 
 auto main(int argc, char const* argv[]) -> int {
     Logger::getLogger().setLogFile("krypton.log");
-    Logger::getLogger().setLevel(Logger::LogLevel::DEBUG);
+    Logger::getLogger().setLevel(Logger::LogLevel::INFO);
     if (argc > 2) {
         Logger::getLogger().error("Usage: krypton <filename>");
         return 1;

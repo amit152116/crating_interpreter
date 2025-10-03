@@ -12,7 +12,7 @@ namespace Krypton {
     class Lexer {
       public:
 
-        explicit Lexer(std::string source);
+        explicit Lexer();
         ~Lexer();
 
         // Disable copy constructor and copy assignment
@@ -23,7 +23,7 @@ namespace Krypton {
         Lexer(Lexer&&)                    = delete;
         auto operator=(Lexer&&) -> Lexer& = delete;
 
-        void tokenize();
+        auto tokenize(std::string& source) -> std::vector<Token::Token>;
 
       private:
 
@@ -31,9 +31,9 @@ namespace Krypton {
         auto               scanToken() -> Token::Token;
         auto               scanChar(char ch) -> Token::Token;
         void               addToken(Token::Token token);
-        [[nodiscard]] auto makeToken(Token::Type                  type,
-                                     Token::LiteralValue::Literal literal =
-                                         nullptr) const -> Token::Token;
+        [[nodiscard]] auto makeToken(
+            Token::Type                type,
+            Token::Literal::LiteralVal literal = nullptr) const -> Token::Token;
         template <typename... Args>
         auto errorToken(fmt::format_string<Args...> fmt, Args&&... args) const
             -> Token::Token;
@@ -76,7 +76,7 @@ namespace Krypton {
         }
 
         std::vector<Token::Token> _tokens;
-        const std::string         _source;
+        std::string               _source;
         uint                      _start;    // Start of the current lexeme
         uint                      _current;  // Current position in the source
         uint                      _line;     // Current line number

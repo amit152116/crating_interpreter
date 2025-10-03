@@ -1,3 +1,4 @@
+#include "Interpreter.hpp"
 #include "Lexer.hpp"
 #include "Logger.hpp"
 #include "Parser.hpp"
@@ -17,7 +18,7 @@ namespace {
 
         auto lexer       = Krypton::Lexer();
         auto parser      = Parser::Parser();
-        auto interpreter = Expr::Interpreter();
+        auto interpreter = Interpreter::Interpreter();
         while (true) {
             std::cout << ">>> ";
             if (!std::getline(std::cin, line)) {
@@ -42,7 +43,7 @@ namespace {
         auto ext = file.substr(file.rfind('.'));
         if (ext != FILE_EXTENSION) {
             Logger::getLogger().error("Invalid file extension: `{}`", ext);
-            Logger::getLogger().info(
+            Logger::getLogger().warn(
                 "Only `{}` files are "
                 "supported",
                 FILE_EXTENSION);
@@ -68,7 +69,7 @@ namespace {
         auto tokens = lexer.tokenize(source);
         auto parser = Parser::Parser();
 
-        auto interpreter = Expr::Interpreter();
+        auto interpreter = Interpreter::Interpreter();
         interpreter.interpret(parser.parse(tokens));
         return 0;
     }
@@ -76,7 +77,7 @@ namespace {
 
 auto main(int argc, char const* argv[]) -> int {
     Logger::getLogger().setLogFile("krypton.log");
-    Logger::getLogger().setLevel(Logger::LogLevel::INFO);
+    Logger::getLogger().setLevel(Logger::LogLevel::DEBUG);
     if (argc > 2) {
         Logger::getLogger().error("Usage: krypton <filename>");
         return 1;
@@ -87,7 +88,7 @@ auto main(int argc, char const* argv[]) -> int {
         runPrompt();
     }
 
-    Logger::getLogger().info("Exiting Krypton interpreter...");
+    Logger::getLogger().warn("Exiting Krypton interpreter...");
 
     return 0;
 }

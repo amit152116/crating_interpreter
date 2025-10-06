@@ -1,5 +1,5 @@
 # Project-specific defaults
-target ?= Krypton
+target ?= Thor
 compiler ?=
 file ?=
 

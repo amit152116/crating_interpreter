@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-namespace Krypton {
+namespace Thor {
 
     class Lexer {
       public:
@@ -85,4 +85,4 @@ namespace Krypton {
 
         Logger::Logger& logger_;
     };
-}  // namespace Krypton
+}  // namespace Thor

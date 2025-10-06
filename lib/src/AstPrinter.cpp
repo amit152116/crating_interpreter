@@ -1,4 +1,4 @@
-#include "Krypton/AstPrinter.hpp"
+#include "Thor/AstPrinter.hpp"
 
 namespace AstPrinter {
 

@@ -1,12 +1,12 @@
 #include <gtest/gtest.h>
 
-#include "Krypton/Krypton.hpp"
+#include "Thor/Thor.hpp"
 
-TEST(KryptonTest, Tokenize) {
+TEST(ThorTest, Tokenize) {
     EXPECT_TRUE(true);
 }
 
-TEST(KryptonTest, LexerTest) {
+TEST(ThorTest, LexerTest) {
     std::string output = "Hello from ProjectClass!";
     EXPECT_EQ(output, "Hello from ProjectClass!");
 }

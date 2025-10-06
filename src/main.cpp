@@ -1,6 +1,6 @@
-#include "Krypton/Interpreter.hpp"
-#include "Krypton/Lexer.hpp"
-#include "Krypton/Parser.hpp"
+#include "Thor/Interpreter.hpp"
+#include "Thor/Lexer.hpp"
+#include "Thor/Parser.hpp"
 
 #include <filesystem>
 #include <fstream>
@@ -15,7 +15,7 @@ namespace {
     void runPrompt() {
         std::string line;
 
-        auto lexer       = Krypton::Lexer();
+        auto lexer       = Thor::Lexer();
         auto parser      = Parser::Parser();
         auto interpreter = Interpreter::Interpreter();
         while (true) {
@@ -64,7 +64,7 @@ namespace {
                                           file);
             }
         }
-        auto lexer  = Krypton::Lexer();
+        auto lexer  = Thor::Lexer();
         auto tokens = lexer.tokenize(source);
         auto parser = Parser::Parser();
 
@@ -87,7 +87,7 @@ auto main(int argc, char const* argv[]) -> int {
         runPrompt();
     }
 
-    Logger::getLogger().warn("Exiting Krypton interpreter...");
+    Logger::getLogger().warn("Exiting Thor interpreter...");
 
     return 0;
 }

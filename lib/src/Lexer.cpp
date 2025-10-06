@@ -1,9 +1,9 @@
-#include "Krypton/Lexer.hpp"
+#include "Thor/Lexer.hpp"
 
 #include <bit>
 #include <utility>
 
-namespace Krypton {
+namespace Thor {
 
     Lexer::Lexer()
         : start_(0),
@@ -337,4 +337,4 @@ namespace Krypton {
         }
     }
 
-}  // namespace Krypton
+}  // namespace Thor

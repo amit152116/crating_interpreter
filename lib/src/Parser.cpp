@@ -1,6 +1,6 @@
-#include "Krypton/Parser.hpp"
+#include "Thor/Parser.hpp"
 
-#include "Krypton/TokenType.hpp"
+#include "Thor/TokenType.hpp"
 
 #include <utility>
 

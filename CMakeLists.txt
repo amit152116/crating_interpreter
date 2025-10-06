@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 project(
-  Krypton
+  Thor
   VERSION 1.0.0
   LANGUAGES CXX)
 
@@ -37,7 +37,7 @@ file(GLOB_RECURSE SOURCES ${PROJECT_SOURCE_DIR}/src/*.cpp)
 
 # Executable (only main.cpp or app entry points)
 add_executable(${PROJECT_NAME} ${SOURCES})
-target_link_libraries(${PROJECT_NAME} PRIVATE Krypton_lib)
+target_link_libraries(${PROJECT_NAME} PRIVATE Thor_lib)
 target_include_directories(${PROJECT_NAME}
                            PRIVATE ${PROJECT_SOURCE_DIR}/include)
 

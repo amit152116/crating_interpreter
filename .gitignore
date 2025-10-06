@@ -1,6 +1,42 @@
-**/*.json
-Krypton
-.cache
-.build
-**/*.zst
-*.out.*
+# Build directories
+build/
+install/
+.cache/
+.ccache/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Compiled files
+*.o
+*.so
+*.a
+*.dylib
+*.dll
+*.exe
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+compile_commands.json
+CTestTestfile.cmake
+_deps/
+
+# Generated files
+*.log
+.build.config
+*.cmake
+!CMakeLists.txt
+
+# Coverage
+coverage.info
+coverage_report/
+
+# Documentation
+docs/html/
+docs/latex/

@@ -1,6 +1,6 @@
-#include "Interpreter.hpp"
+#include "Krypton/Interpreter.hpp"
 
-#include "Exceptions.hpp"
+#include "Krypton/Exceptions.hpp"
 
 namespace Interpreter {
 

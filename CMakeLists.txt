@@ -1,57 +1,56 @@
-cmake_minimum_required(VERSION 3.10)
-project(Krypton)
+cmake_minimum_required(VERSION 3.16)
+project(
+  Krypton
+  VERSION 1.0.0
+  LANGUAGES CXX)
 
-# Set C++ standard
+# C++ Standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-# Ensure build files go to build directory
-set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/build)
-set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
-set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR})
+# Options
+option(BUILD_TESTS "Build tests" OFF)
+option(BUILD_EXAMPLES "Build examples" OFF)
+option(ENABLE_WARNINGS "Enable compiler warnings" OFF)
 
-# Set compiler flags
-set(ASAN_FLAGS "-fsanitize=address -fno-omit-frame-pointer")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 -Wall")
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ASAN_FLAGS}")
-# add_compile_options(-Wall -Wextra -Wpedantic)
+# Compiler warnings
+if(ENABLE_WARNINGS)
+  if(MSVC)
+    add_compile_options(/W4 /WX)
+  else()
+    add_compile_options(-Wall -Wextra -Wpedantic)
+    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+      add_compile_options(-Werror)
+    endif()
+  endif()
+endif()
 
-# Find fmt package
+# Dependencies
 find_package(fmt REQUIRED)
 
-# Add include directory
-include_directories(${PROJECT_SOURCE_DIR}/include)
+# Add shared library
+add_subdirectory(lib)
 
-# Create list of source files
-file(GLOB SRC_FILES "${PROJECT_SOURCE_DIR}/src/*.cpp")
+# Source files (library)
+file(GLOB_RECURSE SOURCES ${PROJECT_SOURCE_DIR}/src/*.cpp)
 
-# Separate main.cpp from other sources
-list(REMOVE_ITEM SRC_FILES "${PROJECT_SOURCE_DIR}/src/main.cpp")
+# Executable (only main.cpp or app entry points)
+add_executable(${PROJECT_NAME} ${SOURCES})
+target_link_libraries(${PROJECT_NAME} PRIVATE Krypton_lib)
+target_include_directories(${PROJECT_NAME}
+                           PRIVATE ${PROJECT_SOURCE_DIR}/include)
 
-# App executable
-add_executable(${PROJECT_NAME} ${SRC_FILES} src/main.cpp)
-target_link_libraries(${PROJECT_NAME} PRIVATE fmt::fmt)
+# Install
+install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)
 
-# Test executable (without main.cpp)
-add_executable(${PROJECT_NAME}_test tests/main_test.cpp ${SRC_FILES})
-target_link_libraries(${PROJECT_NAME}_test PRIVATE fmt::fmt)
+# Tests
+if(BUILD_TESTS)
+  enable_testing()
+  add_subdirectory(tests)
+endif()
 
-# Create symbolic link to executable in project root (Unix-like systems only)
-if(UNIX)
-  add_custom_command(
-    TARGET ${PROJECT_NAME}
-    POST_BUILD
-    COMMAND
-      ${CMAKE_COMMAND} -E create_symlink ${CMAKE_BINARY_DIR}/${PROJECT_NAME}
-      ${CMAKE_SOURCE_DIR}/${PROJECT_NAME})
-
-  # Symlink for compile_commands.json
-  add_custom_command(
-    TARGET ${PROJECT_NAME}
-    POST_BUILD
-    COMMAND
-      ${CMAKE_COMMAND} -E create_symlink
-      ${CMAKE_BINARY_DIR}/compile_commands.json
-      ${CMAKE_SOURCE_DIR}/compile_commands.json)
+# Examples
+if(BUILD_EXAMPLES)
+  add_subdirectory(examples)
 endif()

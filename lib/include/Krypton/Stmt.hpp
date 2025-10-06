@@ -34,7 +34,7 @@ namespace Stmt {
                           Token::Token type)
             : initializer(std::move(initializer)),
               name(std::move(name)),
-              type(std::move(type)) {};
+              type(std::move(type)){};
     };
 
     template <class R>
@@ -42,10 +42,10 @@ namespace Stmt {
                      VisitorBase<Variable, R>,
                      VisitorBase<Print, R> {};
 
-#define OVERRIDE_STMT_VISITOR                                             \
-    [[nodiscard]] auto visit(const Expression& stmt) const -> void final; \
-    [[nodiscard]] auto visit(const Variable& stmt) const -> void final;   \
-    [[nodiscard]] auto visit(const Print& stmt) const -> void final;
+#define OVERRIDE_STMT_VISITOR                                           \
+    [[nodiscard]] auto visit(const Expression& stmt) const->void final; \
+    [[nodiscard]] auto visit(const Variable& stmt) const->void final;   \
+    [[nodiscard]] auto visit(const Print& stmt) const->void final;
 
     class StmtBase {
       public:

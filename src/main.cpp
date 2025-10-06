@@ -1,7 +1,6 @@
-#include "Interpreter.hpp"
-#include "Lexer.hpp"
-#include "Logger.hpp"
-#include "Parser.hpp"
+#include "Krypton/Interpreter.hpp"
+#include "Krypton/Lexer.hpp"
+#include "Krypton/Parser.hpp"
 
 #include <filesystem>
 #include <fstream>
@@ -9,9 +8,9 @@
 #include <sstream>
 #include <string>
 
-namespace {
+constexpr std::string_view FILE_EXTENSION = ".krp";
 
-    const std::string FILE_EXTENSION = ".krp";
+namespace {
 
     void runPrompt() {
         std::string line;

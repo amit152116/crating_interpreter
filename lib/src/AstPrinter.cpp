@@ -1,4 +1,4 @@
-#include "AstPrinter.hpp"
+#include "Krypton/AstPrinter.hpp"
 
 namespace AstPrinter {
 
@@ -11,8 +11,7 @@ namespace AstPrinter {
         logger_.info("AST Expression: {}", result);
     }
 
-    auto AstPrinter::visit(const Expr::Variable& expr) const
-        -> std::string {
+    auto AstPrinter::visit(const Expr::Variable& expr) const -> std::string {
         return parenthesize(expr.name.toString());
     }
 

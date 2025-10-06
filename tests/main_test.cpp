@@ -1,3 +1,12 @@
+#include <gtest/gtest.h>
 
+#include "Krypton/Krypton.hpp"
 
-auto main(int argc, char* argv[]) -> int {}
+TEST(KryptonTest, Tokenize) {
+    EXPECT_TRUE(true);
+}
+
+TEST(KryptonTest, LexerTest) {
+    std::string output = "Hello from ProjectClass!";
+    EXPECT_EQ(output, "Hello from ProjectClass!");
+}
